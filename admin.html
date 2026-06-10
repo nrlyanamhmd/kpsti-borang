@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+  <meta name="theme-color" content="#1a3a6b"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="KPSTI Admin"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <title>Admin – KPSTI</title>
+  <style>
+    :root{ --navy:#1a3a6b; --navy-dark:#0f2550; --gold:#ffd700; }
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    body{font-family:Arial,sans-serif;background:#f0f4fa;min-height:100vh;}
+
+    /* LOGIN */
+    #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--navy),var(--navy-dark));padding:20px;}
+    .login-card{background:white;border-radius:16px;padding:36px 28px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.4);text-align:center;}
+    .login-icon{width:72px;height:72px;background:var(--navy);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:30px;}
+    .login-card h2{color:var(--navy);font-size:22px;margin-bottom:4px;}
+    .login-card p{color:#888;font-size:12px;margin-bottom:24px;line-height:1.5;}
+    .pw-wrap{position:relative;margin-bottom:14px;}
+    .pw-wrap input{width:100%;border:1.5px solid #ddd;border-radius:8px;padding:13px 44px 13px 14px;font-size:15px;outline:none;letter-spacing:2px;}
+    .pw-wrap input:focus{border-color:var(--navy);}
+    .pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#888;}
+    .btn-login{width:100%;background:var(--navy);color:white;border:none;padding:14px;font-size:16px;border-radius:8px;cursor:pointer;font-weight:bold;font-family:Arial,sans-serif;}
+    .btn-login:hover{background:var(--navy-dark);}
+    .btn-login:disabled{background:#888;cursor:not-allowed;}
+    .login-err{color:#dc3545;font-size:12px;margin-top:10px;min-height:18px;}
+    .login-hint{color:#bbb;font-size:11px;margin-top:16px;}
+
+    /* DASHBOARD */
+    #dashboard{display:none;}
+
+    .topbar{background:var(--navy);color:white;padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+    .topbar h1{font-size:14px;}
+    .topbar p{font-size:10px;opacity:.7;}
+    .btn-logout{background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);padding:6px 12px;border-radius:5px;cursor:pointer;font-size:12px;font-family:Arial,sans-serif;}
+
+    .content{padding:14px;max-width:700px;margin:0 auto;}
+
+    /* STATS */
+    .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
+    .stat-card{background:white;border-radius:10px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);text-align:center;}
+    .stat-card .num{font-size:28px;font-weight:bold;color:var(--navy);}
+    .stat-card .lbl{font-size:11px;color:#888;margin-top:2px;}
+
+    /* CONTROLS */
+    .controls{background:white;border-radius:10px;padding:12px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:8px;}
+    .controls input,.controls select{border:1.5px solid #ddd;border-radius:7px;padding:10px 12px;font-size:13px;outline:none;width:100%;}
+    .controls input:focus,.controls select:focus{border-color:var(--navy);}
+    .btn-refresh{background:var(--navy);color:white;border:none;padding:10px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:bold;font-family:Arial,sans-serif;width:100%;}
+
+    /* CARD LIST */
+    .rec-card{background:white;border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);cursor:pointer;border-left:4px solid #ddd;transition:border-color .2s;}
+    .rec-card.pending {border-left-color:#ffc107;}
+    .rec-card.approved{border-left-color:#28a745;}
+    .rec-card.rejected{border-left-color:#dc3545;}
+    .rec-card:active{transform:scale(.99);}
+    .rec-name{font-size:15px;font-weight:bold;color:#222;margin-bottom:4px;}
+    .rec-meta{font-size:12px;color:#666;margin-bottom:6px;line-height:1.5;}
+    .rec-footer{display:flex;justify-content:space-between;align-items:center;}
+    .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:bold;}
+    .badge-pending {background:#fff3cd;color:#856404;}
+    .badge-approved{background:#d1e7dd;color:#0a5233;}
+    .badge-rejected{background:#f8d7da;color:#842029;}
+    .btn-print-small{background:#28a745;color:white;border:none;padding:5px 12px;border-radius:5px;font-size:12px;cursor:pointer;}
+
+    .empty-state{text-align:center;padding:40px 20px;color:#aaa;}
+    .empty-state div{font-size:40px;margin-bottom:10px;}
+
+    /* MODAL */
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;overflow-y:auto;}
+    .modal.active{display:block;}
+    .modal-inner{background:white;margin:16px;border-radius:12px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.3);max-width:600px;margin-left:auto;margin-right:auto;}
+    .modal-head{background:var(--navy);color:white;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;}
+    .modal-head h2{font-size:15px;}
+    .modal-close{background:none;border:1px solid rgba(255,255,255,.4);color:white;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:13px;}
+    .modal-body{padding:16px;}
+
+    .status-row{background:#f8f9fa;border-radius:8px;padding:12px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+    .status-row label{font-size:13px;font-weight:bold;color:#444;}
+    .status-row select{border:1px solid #ccc;border-radius:5px;padding:6px 10px;font-size:13px;flex:1;}
+    .btn-save{background:var(--navy);color:white;border:none;padding:7px 16px;border-radius:5px;cursor:pointer;font-size:13px;font-weight:bold;}
+    .btn-print-full{background:#28a745;color:white;border:none;padding:10px;border-radius:7px;cursor:pointer;font-size:14px;font-weight:bold;font-family:Arial,sans-serif;width:100%;margin-top:8px;}
+
+    /* DETAIL VIEW (mobile friendly) */
+    .detail-section{margin-bottom:14px;}
+    .detail-section h3{font-size:11px;color:var(--navy);font-weight:bold;text-transform:uppercase;letter-spacing:.5px;padding:6px 10px;background:#f0f4ff;border-radius:5px;margin-bottom:8px;}
+    .detail-row{display:flex;padding:5px 2px;border-bottom:1px solid #f5f5f5;font-size:13px;}
+    .detail-row:last-child{border-bottom:none;}
+    .detail-label{color:#888;width:45%;min-width:120px;font-size:12px;}
+    .detail-value{color:#222;font-weight:500;flex:1;word-break:break-word;}
+
+    /* PRINTABLE */
+    .printable{display:none;}
+
+    @media print{
+      body>*{display:none!important;}
+      .printable{display:block!important;font-family:'Times New Roman',Times,serif;font-size:11px;padding:20px;}
+      .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+      .pl{width:60px;height:60px;border:2px solid #555;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;text-align:center;color:#555;}
+      .phc{text-align:center;flex:1;padding:0 10px;}
+      .pmin{font-size:11.5px;font-weight:bold;text-transform:uppercase;line-height:1.4;}
+      .padr{font-size:9.5px;line-height:1.5;margin-top:3px;}
+      .pkb{border:2px solid #1a3a6b;border-radius:4px;padding:3px 5px;font-size:14px;font-weight:900;color:#1a3a6b;font-family:Arial,sans-serif;text-align:center;}
+      .pref{display:flex;justify-content:space-between;border-top:1.5px solid black;border-bottom:1.5px solid black;padding:4px 0;margin:6px 0;font-size:10.5px;}
+      .ptit{text-align:center;font-size:12px;font-weight:bold;text-transform:uppercase;text-decoration:underline;margin:7px 0 9px;}
+      table.pm{width:100%;border-collapse:collapse;font-size:10.5px;}
+      table.pm td{border:1px solid black;padding:3px 5px;vertical-align:middle;}
+      table.pm td.l{width:170px;}
+      table.pm td.c{width:12px;text-align:center;padding:3px 1px;}
+      .prh{display:grid;grid-template-columns:24px 1fr 1fr 65px;font-weight:bold;border-bottom:1px solid black;padding:2px 0;font-size:10px;}
+      .prr{display:grid;grid-template-columns:24px 1fr 1fr 65px;font-size:10px;padding:2px 0;}
+      .psig{display:flex;justify-content:space-between;align-items:flex-end;margin:12px 0 9px;}
+      .psb{text-align:center;}
+      .psl{border-top:1px solid black;width:170px;margin:3px auto 0;}
+      .psh{background:#c0c0c0;border:1px solid black;padding:3px 5px;font-weight:bold;font-style:italic;font-size:10.5px;text-transform:uppercase;}
+      .pbl{border:1px solid black;border-top:none;min-height:36px;padding:3px 5px;}
+      .pap{border:1px solid black;border-top:none;padding:3px 5px;font-weight:bold;font-size:10.5px;}
+      table.ps{width:100%;border-collapse:collapse;font-size:10.5px;}
+      table.ps td{border:1px solid black;border-top:none;padding:3px 5px;vertical-align:middle;}
+      table.ps td.l{width:170px;}
+      table.ps td.c{width:12px;text-align:center;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-icon">🔐</div>
+    <h2>Admin KPSTI</h2>
+    <p>Dashboard Pengurusan Borang<br>Meninggalkan Pejabat</p>
+    <div class="pw-wrap">
+      <input type="password" id="pwInput" placeholder="Kata laluan admin"/>
+      <button class="pw-toggle" onclick="togglePw()" id="pwToggle">👁</button>
+    </div>
+    <button class="btn-login" id="btnLogin" onclick="doLogin()">Log Masuk</button>
+    <div class="login-err" id="loginErr"></div>
+    <div class="login-hint">Hubungi pentadbir jika terlupa kata laluan.</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="topbar">
+    <div>
+      <h1>🗂️ Dashboard Admin</h1>
+      <p>KPSTI – Borang Meninggalkan Pejabat</p>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">Log Keluar</button>
+  </div>
+
+  <div class="content">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="num" id="cTotal">—</div><div class="lbl">Jumlah</div></div>
+      <div class="stat-card"><div class="num" id="cPend" style="color:#856404">—</div><div class="lbl">Menunggu</div></div>
+      <div class="stat-card"><div class="num" id="cApp"  style="color:#0a5233">—</div><div class="lbl">Diluluskan</div></div>
+      <div class="stat-card"><div class="num" id="cRej"  style="color:#842029">—</div><div class="lbl">Tidak Diluluskan</div></div>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="searchInput" placeholder="🔍 Cari nama / bahagian / tujuan..." oninput="renderList()"/>
+      <select id="statusFilter" onchange="renderList()">
+        <option value="">Semua Status</option>
+        <option value="pending">Menunggu</option>
+        <option value="approved">Diluluskan</option>
+        <option value="rejected">Tidak Diluluskan</option>
+      </select>
+      <button class="btn-refresh" onclick="loadData()">↻ Muat Semula</button>
+    </div>
+
+    <div id="listArea"><div class="empty-state"><div>⏳</div>Memuatkan data...</div></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-inner">
+    <div class="modal-head">
+      <h2>📄 Detail Borang</h2>
+      <button class="modal-close" onclick="closeModal()">✕ Tutup</button>
+    </div>
+    <div class="modal-body">
+      <div class="status-row">
+        <label>Status:</label>
+        <select id="mStatus">
+          <option value="pending">Menunggu</option>
+          <option value="approved">Diluluskan</option>
+          <option value="rejected">Tidak Diluluskan</option>
+        </select>
+        <button class="btn-save" onclick="saveStatus()">Simpan</button>
+      </div>
+      <div id="sMsg" style="font-size:12px;margin-bottom:10px;min-height:16px;text-align:center;"></div>
+      <div id="detailArea"></div>
+      <button class="btn-print-full" onclick="window.print()">🖨️ Print Borang A4</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINTABLE (hidden, print only) -->
+<div class="printable" id="printArea"></div>
+
+<script>
+  const SUPA_URL  = 'https://zmnjzswrjwxudmnzkggm.supabase.co';
+  const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inptbmp6c3dyand4dWRtbnprZ2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5NjU0ODAsImV4cCI6MjA5NjU0MTQ4MH0.g_ccnNLI-CmPvE8BYk8dnu14yNvFq9DEfN37e_3D23E';
+  const TABLE     = 'borang_meninggalkan_pejabat';
+  const ADMIN_PW  = 'Admin@KPSTI2026'; // TUKAR PASSWORD DI SINI
+
+  let allData=[], currentId=null;
+
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+  // ── LOGIN ──
+  function togglePw(){
+    const i=document.getElementById('pwInput');
+    i.type = i.type==='password'?'text':'password';
+  }
+
+  function doLogin(){
+    const pw=document.getElementById('pwInput').value;
+    const err=document.getElementById('loginErr');
+    if(!pw){err.textContent='Sila masukkan kata laluan.';return;}
+    if(pw===ADMIN_PW){
+      document.getElementById('loginScreen').style.display='none';
+      document.getElementById('dashboard').style.display='block';
+      loadData();
+    } else {
+      err.textContent='❌ Kata laluan salah. Cuba lagi.';
+      document.getElementById('pwInput').value='';
+      document.getElementById('pwInput').focus();
+    }
+  }
+
+  function doLogout(){
+    allData=[];
+    document.getElementById('dashboard').style.display='none';
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('pwInput').value='';
+    document.getElementById('loginErr').textContent='';
+  }
+
+  document.getElementById('pwInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+  // ── LOAD DATA ──
+  async function loadData(){
+    document.getElementById('listArea').innerHTML='<div class="empty-state"><div>⏳</div>Memuatkan data...</div>';
+    try{
+      const res=await fetch(`${SUPA_URL}/rest/v1/${TABLE}?order=created_at.desc`,{
+        headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
+      });
+      allData=await res.json();
+      updateStats(); renderList();
+    }catch(e){
+      document.getElementById('listArea').innerHTML='<div class="empty-state"><div>❌</div>Gagal muatkan data.<br>Semak sambungan internet.</div>';
+    }
+  }
+
+  function updateStats(){
+    document.getElementById('cTotal').textContent=allData.length;
+    document.getElementById('cPend').textContent =allData.filter(r=>r.status==='pending').length;
+    document.getElementById('cApp').textContent  =allData.filter(r=>r.status==='approved').length;
+    document.getElementById('cRej').textContent  =allData.filter(r=>r.status==='rejected').length;
+  }
+
+  function renderList(){
+    const q =document.getElementById('searchInput').value.toLowerCase();
+    const sf=document.getElementById('statusFilter').value;
+    const f =allData.filter(r=>
+      (!q||(r.nama_pemohon||'').toLowerCase().includes(q)||(r.bahagian||'').toLowerCase().includes(q)||(r.tujuan||'').toLowerCase().includes(q))&&
+      (!sf||r.status===sf)
+    );
+    const area=document.getElementById('listArea');
+    if(!f.length){area.innerHTML='<div class="empty-state"><div>📭</div>Tiada rekod ditemui.</div>';return;}
+    area.innerHTML=f.map(r=>`
+      <div class="rec-card ${r.status||'pending'}" onclick="openModal('${r.id}')">
+        <div class="rec-name">${e(r.nama_pemohon)}</div>
+        <div class="rec-meta">
+          ${e(r.jawatan_gred)} · ${e(r.bahagian)}<br>
+          📍 ${e(r.tempat_dituju)} · ${fd(r.tarikh_bertolak)}
+        </div>
+        <div class="rec-footer">
+          <span class="badge badge-${r.status||'pending'}">${sl(r.status)}</span>
+          <button class="btn-print-small" onclick="event.stopPropagation();openModal('${r.id}',true)">🖨️ Print</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function openModal(id,print){
+    const r=allData.find(x=>x.id==id); if(!r) return;
+    currentId=id;
+    document.getElementById('mStatus').value=r.status||'pending';
+    document.getElementById('sMsg').textContent='';
+    document.getElementById('detailArea').innerHTML=buildDetail(r);
+    document.getElementById('printArea').innerHTML=buildPrint(r);
+    document.getElementById('modal').classList.add('active');
+    if(print) setTimeout(()=>window.print(),300);
+  }
+
+  function closeModal(){document.getElementById('modal').classList.remove('active');currentId=null;}
+
+  async function saveStatus(){
+    if(!currentId) return;
+    const ns=document.getElementById('mStatus').value;
+    const msg=document.getElementById('sMsg');
+    msg.style.color='#888'; msg.textContent='⏳ Menyimpan...';
+    try{
+      const res=await fetch(`${SUPA_URL}/rest/v1/${TABLE}?id=eq.${currentId}`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},
+        body:JSON.stringify({status:ns})
+      });
+      if(res.ok||res.status===204){
+        msg.style.color='green'; msg.textContent='✅ Status berjaya dikemaskini!';
+        const rec=allData.find(x=>x.id==currentId); if(rec) rec.status=ns;
+        updateStats(); renderList();
+        // Update card border colour
+        document.querySelectorAll('.rec-card').forEach(c=>{
+          c.classList.remove('pending','approved','rejected');
+        });
+      } else { msg.style.color='red'; msg.textContent='❌ Gagal simpan.'; }
+    }catch(e){ msg.style.color='red'; msg.textContent='❌ Tiada sambungan.'; }
+  }
+
+  function buildDetail(r){
+    const romb=Array.isArray(r.ahli_rombongan)&&r.ahli_rombongan.length
+      ? r.ahli_rombongan.map(m=>`${m.nama} (${m.jawatan}/${m.gred})`).join(', ')
+      : '—';
+    return`
+    <div class="detail-section">
+      <h3>Maklumat Pemohon</h3>
+      <div class="detail-row"><span class="detail-label">Nama</span><span class="detail-value">${e(r.nama_pemohon)}</span></div>
+      <div class="detail-row"><span class="detail-label">Jawatan/Gred</span><span class="detail-value">${e(r.jawatan_gred)}</span></div>
+      <div class="detail-row"><span class="detail-label">Bahagian</span><span class="detail-value">${e(r.bahagian)}</span></div>
+      <div class="detail-row"><span class="detail-label">No Telefon</span><span class="detail-value">${e(r.no_telefon)}</span></div>
+    </div>
+    <div class="detail-section">
+      <h3>Maklumat Perjalanan</h3>
+      <div class="detail-row"><span class="detail-label">Tujuan</span><span class="detail-value">${e(r.tujuan)}</span></div>
+      <div class="detail-row"><span class="detail-label">Tempat Dituju</span><span class="detail-value">${e(r.tempat_dituju)}</span></div>
+      <div class="detail-row"><span class="detail-label">Bertolak</span><span class="detail-value">${fd(r.tarikh_bertolak)} ${r.masa_bertolak||''}</span></div>
+      <div class="detail-row"><span class="detail-label">Kembali</span><span class="detail-value">${fd(r.tarikh_kembali)} ${r.masa_kembali||''}</span></div>
+      <div class="detail-row"><span class="detail-label">Pengangkutan</span><span class="detail-value">${r.memerlukan_pengangkutan||'—'} ${r.jenis_pengangkutan?'('+r.jenis_pengangkutan+')':''}</span></div>
+      <div class="detail-row"><span class="detail-label">Ahli Rombongan</span><span class="detail-value">${romb}</span></div>
+    </div>`;
+  }
+
+  function buildPrint(r){
+    const romb=Array.isArray(r.ahli_rombongan)?r.ahli_rombongan:[];
+    const rows=[1,2,3].map(i=>{const m=romb.find(x=>x.bil===i)||{};return`<div class="prr"><span>${i}.</span><span>${e(m.nama||'')}</span><span>${e(m.jawatan||'')}</span><span>${e(m.gred||'')}</span></div>`;}).join('');
+    const ya=r.memerlukan_pengangkutan==='Ya',tdk=r.memerlukan_pengangkutan==='Tidak';
+    return`
+    <div class="ph">
+      <div class="pl">[LOGO<br>SABAH]</div>
+      <div class="phc"><div class="pmin">KEMENTERIAN PENDIDIKAN SAINS, TEKNOLOGI DAN INOVASI SABAH</div><div class="padr">Aras Bawah, 8 – 11 &amp; 13, Wisma Bandaraya,<br>Jalan Masjid Lama, 88000 KOTA KINABALU<br>Tel: 088-288333 &nbsp; Fax: 088-269071</div></div>
+      <div style="text-align:center;width:70px"><div class="pkb">KPSTI</div><div style="font-size:7px;margin-top:2px;color:#333">KSTI (P&amp;K)/004</div></div>
+    </div>
+    <div class="pref"><span><strong>Rujukan KPSTI:</strong> ${e(r.rujukan_kpsti||'')}</span><span><strong>Tarikh:</strong> ${fd(r.tarikh_dokumen)}</span></div>
+    <div class="ptit">Kenyataan Pegawai Meninggalkan Pejabat Atas Urusan Rasmi</div>
+    <table class="pm">
+      <tr><td class="l">Nama Pemohon</td><td class="c">:</td><td>${e(r.nama_pemohon)}</td></tr>
+      <tr><td class="l">Jawatan/Gred</td><td class="c">:</td><td>${e(r.jawatan_gred)}</td></tr>
+      <tr><td class="l">Bahagian</td><td class="c">:</td><td>${e(r.bahagian)}</td></tr>
+      <tr><td class="l">Tempat Dituju</td><td class="c">:</td><td>${e(r.tempat_dituju)}</td></tr>
+      <tr><td class="l">Memerlukan Pengangkutan<br><small>(Sila tandakan pada kotak)</small></td><td class="c">:</td>
+        <td>Ya ${ya?'☑':'☐'} &nbsp;(jika ya): Darat ${r.jenis_pengangkutan==='Darat'?'☑':'☐'} &nbsp;Udara ${r.jenis_pengangkutan==='Udara'?'☑':'☐'}<br>Tidak ${tdk?'☑':'☐'}</td></tr>
+      <tr><td class="l" style="font-weight:bold">Tujuan:</td><td class="c"></td><td style="font-weight:bold">${e(r.tujuan)}</td></tr>
+      <tr><td class="l">No Telefon</td><td class="c">:</td><td>${e(r.no_telefon)}</td></tr>
+      <tr><td class="l">Tarikh &amp; Masa Bertolak</td><td class="c">:</td><td>${fd(r.tarikh_bertolak)} ${r.masa_bertolak?'('+r.masa_bertolak+')':''}</td></tr>
+      <tr><td class="l">Tarikh &amp; Masa Kembali</td><td class="c">:</td><td>${fd(r.tarikh_kembali)} ${r.masa_kembali?'('+r.masa_kembali+')':''}</td></tr>
+      <tr><td class="l" style="vertical-align:top;padding-top:4px">Ahli-Ahli Rombongan<br><small>(Jika Ada)</small></td><td class="c" style="vertical-align:top;padding-top:4px">:</td>
+        <td style="padding:4px 5px"><div class="prh"><span>Bil.</span><span>Nama</span><span>Jawatan</span><span>Gred</span></div>${rows}</td></tr>
+    </table>
+    <div class="psig">
+      <div class="psb"><div style="height:40px"></div><div class="psl"></div><div style="margin-top:3px">(Tandatangan Pemohon)</div></div>
+      <div class="psb"><div>${fd(r.tarikh_tandatangan)}</div><div class="psl" style="width:150px"></div><div style="margin-top:3px">(Tarikh)</div></div>
+    </div>
+    <div class="psh">ULASAN KETUA BAHAGIAN PEMOHON:</div><div class="pbl">&nbsp;</div>
+    <table class="ps"><tr><td class="l">Tandatangan</td><td class="c">:</td><td></td></tr><tr><td class="l">Tarikh</td><td class="c">:</td><td>${fd(r.tarikh_ketua_bahagian)}</td></tr></table>
+    <div class="psh" style="margin-top:4px">ULASAN PEGAWAI KENDERAAN:</div><div class="pbl">&nbsp;</div>
+    <table class="ps">
+      <tr><td class="l">Nama Pemandu</td><td class="c">:</td><td>${e(r.nama_pemandu||'')}</td></tr>
+      <tr><td class="l">Nombor Kenderaan</td><td class="c">:</td><td>${e(r.no_kenderaan||'')}</td></tr>
+      <tr><td class="l">Tandatangan Pegawai Kenderaan</td><td class="c">:</td><td></td></tr>
+    </table>
+    <div class="psh" style="margin-top:4px">KELULUSAN KETUA JABATAN:</div>
+    <div class="pap">*Diluluskan / Tidak Diluluskan</div>
+    <table class="ps"><tr><td class="l">Ulasan (Jika Ada)</td><td class="c">:</td><td>${e(r.ulasan_ketua_jabatan||'')}</td></tr></table>`;
+  }
+
+  function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function fd(d){if(!d)return'—';try{const dt=new Date(d);if(isNaN(dt))return d;return dt.toLocaleDateString('ms-MY',{day:'2-digit',month:'long',year:'numeric'});}catch{return d;}}
+  function sl(s){return s==='approved'?'Diluluskan':s==='rejected'?'Tidak Diluluskan':'Menunggu';}
+
+  document.getElementById('modal').addEventListener('click',ev=>{if(ev.target===document.getElementById('modal'))closeModal();});
+</script>
+</body>
+</html>
